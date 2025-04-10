@@ -1,0 +1,117 @@
+CREATE DATABASE IF NOT EXISTS subasteltor CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE subasteltor;
+
+-- Tabla de usuarios
+CREATE TABLE usuarios (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    reputacion INT DEFAULT 100,
+    plan ENUM('free', 'premium') DEFAULT 'free',
+    verificado BOOLEAN DEFAULT FALSE,
+    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_plan (plan)
+) ENGINE=InnoDB;
+
+-- Tabla de categorías
+CREATE TABLE categorias (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL,
+    descripcion TEXT,
+    UNIQUE INDEX idx_nombre (nombre)
+) ENGINE=InnoDB;
+
+-- Tabla de subcategorías
+CREATE TABLE subcategorias (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    categoria_id INT NOT NULL,
+    nombre VARCHAR(50) NOT NULL,
+    FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE CASCADE,
+    UNIQUE INDEX idx_categoria_nombre (categoria_id, nombre)
+) ENGINE=InnoDB;
+
+-- Tabla de subastas
+CREATE TABLE subastas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    subastador_id INT NOT NULL,
+    titulo VARCHAR(200) NOT NULL,
+    descripcion TEXT,
+    subcategoria_id INT NOT NULL,
+    tipo ENUM('inglesa', 'holandesa') DEFAULT 'inglesa',
+    fecha_inicio TIMESTAMP NOT NULL,
+    fecha_fin TIMESTAMP NOT NULL,
+    precio_inicial DECIMAL(12, 2) NOT NULL,
+    precio_actual DECIMAL(12, 2) NOT NULL,
+    comision DECIMAL(5, 2) DEFAULT 3.0,
+    minimo_participantes INT DEFAULT 5,
+    tiempo_inactividad_min INT DEFAULT 20,
+    estado ENUM('activa', 'pausada', 'finalizada', 'cancelada') DEFAULT 'activa',
+    es_privada BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (subastador_id) REFERENCES usuarios(id),
+    FOREIGN KEY (subcategoria_id) REFERENCES subcategorias(id),
+    INDEX idx_estado (estado),
+    INDEX idx_fechas (fecha_inicio, fecha_fin)
+) ENGINE=InnoDB;
+
+-- Tabla de productos
+CREATE TABLE productos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    subasta_id INT NOT NULL,
+    nombre VARCHAR(200) NOT NULL,
+    imagen_url VARCHAR(255),
+    descripcion TEXT,
+    atributos JSON,
+    FOREIGN KEY (subasta_id) REFERENCES subastas(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Tabla de pujas
+CREATE TABLE pujas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    subasta_id INT NOT NULL,
+    usuario_id INT NOT NULL,
+    monto DECIMAL(12, 2) NOT NULL,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (subasta_id) REFERENCES subastas(id),
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
+    INDEX idx_subasta (subasta_id)
+) ENGINE=InnoDB;
+
+-- Tabla de notificaciones
+CREATE TABLE notificaciones (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    usuario_id INT NOT NULL,
+    mensaje TEXT NOT NULL,
+    leida BOOLEAN DEFAULT FALSE,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+    INDEX idx_usuario (usuario_id)
+) ENGINE=InnoDB;
+
+-- Tabla de tags
+CREATE TABLE tags (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(50) UNIQUE NOT NULL
+) ENGINE=InnoDB;
+
+-- Tabla de relación producto-tags
+CREATE TABLE producto_tags (
+    producto_id INT NOT NULL,
+    tag_id INT NOT NULL,
+    PRIMARY KEY (producto_id, tag_id),
+    FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Datos iniciales
+INSERT INTO categorias (nombre, descripcion) VALUES 
+('Arte', 'Pinturas, esculturas y obras artísticas'),
+('Electrónica', 'Dispositivos tecnológicos');
+
+INSERT INTO subcategorias (categoria_id, nombre) VALUES 
+(1, 'Pintura'), (1, 'Escultura'), 
+(2, 'Smartphones'), (2, 'Laptops');
+
+INSERT INTO usuarios (nombre, email, password_hash, plan) VALUES 
+('Juan Pérez', 'juan@subasteltor.com', '$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', 'premium'),
+('María Gómez', 'maria@test.com', '$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', 'free');

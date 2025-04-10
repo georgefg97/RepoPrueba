@@ -1,0 +1,19 @@
+services:
+  backend:
+    build: ./back
+    container_name: subasteitor-back
+    ports:
+      - "8000:8000"
+    networks:
+      - appnet
+
+  frontend:
+    build: ./front
+    container_name: subasteitor-front
+    ports:
+      - "5173:80"
+    networks:
+      - appnet
+
+networks:
+  appnet:
